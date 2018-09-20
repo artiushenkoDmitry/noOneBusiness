@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Record & transmit</title>
+    <script src="script.js"></script>
+    <link rel="stylesheet" href="main.css">
+</head>
+
+<body>
+    <div class="booth">
+        <video id="video" width="400" height="300" autoplay></video>
+        <br>
+        <video id="theirVideo" width="400" height="300" autoplay></video>
+    </div>
+    <br>
+    
+    
+    <input type="button" value="Для начала работы нажмите на кнопку" id="inputText" onclick="runPromise()"/>
+    <br>
+    <br>
+    <input type="button" value="Для окончания работы нажмине на кнопку" onclick="end()"/>
+    <br>
+    <br>
+    <input type="button" value="Для начала записи нажмине на кнопку" onclick="startRecording()"/>
+    <br>
+    <br>
+    <input type="button" value="Для окончания записи нажмине на кнопку" onclick="stopRecording()"/>
+
+<script type="text/javascript">pageReady();</script>
+</body>
+
+
+</html>
