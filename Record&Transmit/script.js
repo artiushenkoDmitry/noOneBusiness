@@ -1,14 +1,16 @@
 var video;
+var recordedVideo;
 var myPeerConnection;
 var remotePeerConnection;
 var PeerConnection;
-var SessionDescription;
 var theirVideo;
-var localStream;
 var mediaRecorder;
-var recordedBlobs = [];
+var recordedBlobs;
 var superBuffer;
-//var output;
+var remoteStream;
+//var currentDataArray = [];
+//var localStream;
+// var SessionDescription;
 
 const description = {
     offerToReceiveAudio: 1,
@@ -23,11 +25,23 @@ navigator.getMedia = navigator.getUserMedia ||
 PeerConnection = window.RTCPeerConnection ||
     window.mozRTCPeerConnection;
 
+function getReceiverStats() {
+    const receiver = remotePeerConnection.getReceivers()[1];
+    receiver.getStats().then(res => {
+        res.forEach(report => {
+            console.log('report');
+            console.log(report);
+        });
+    });
+}
+
 function pageReady() {
-    // console.log(navigator.mediaDevices.enumerateDevices());
     theirVideo = document.getElementById('theirVideo');
     video = document.getElementById('video');
-    //    output = document.getElementById('output');
+    recordedVideo = document.getElementById('recordedVideo');
+    // for (index = 0; index < 10; index++) {
+    //     blobs[index] = new Blob();
+    // }
 }
 
 function runPromise() {
@@ -35,6 +49,7 @@ function runPromise() {
         video: true,
         audio: true
     }, function (stream) {
+//        localStream = stream;
         video.srcObject = stream;
         createPeerConnection(stream);
     }, function (error) {
@@ -43,119 +58,69 @@ function runPromise() {
 
 //Success! Show the remote video...
 function gotRemoteStream(event) {
-    window.stream = event.streams[0];
-    theirVideo.srcObject = event.streams[0];
+    remoteStream = event.streams[0];
+    console.log('связь с удаленным пиром установлена');
+    //    startRecording();
+    //    playRecord();
+    //    window.stream = event.streams[0];
+    theirVideo.srcObject = remoteStream;
 };
 
 function startRecording() {
-
+    recordedBlobs = [];
     console.log('вошли в функцию startRecording');
     let options = { mimeType: 'video/webm;codecs=vp9' };
     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
         console.log(options.mimeType, ' не поддерживается');
     } else {
         try {
-            mediaRecorder = new MediaRecorder(window.stream, options);
+            mediaRecorder = new MediaRecorder(remoteStream, options);
         } catch (error) {
             console.error('Произошла ошибка при создании MediaRecorder:', error);
             return;
         }
         console.log('Создан MediaRecorder ', mediaRecorder, ' с настройками ', options);
-        mediaRecorder.onstop = (event) => {
-            console.log('MediaRecorder остановлен: ', event);
-        }
+
         mediaRecorder.ondataavailable = handleDataAvailable;
-        mediaRecorder.start(10);
+        mediaRecorder.start(100);
         console.log('MediaRecorder started', mediaRecorder);
     }
 }
 
-function handleDataAvailable(event){
-    superBuffer = new Blob(recordedBlobs, {type: 'video/webm'});
+function handleDataAvailable(event) {
     console.log('вошли в метод handleDataAvailable');
     if (event.data && event.data.size > 0) {
         recordedBlobs.push(event.data);
-      }
+        // currentDataArray.push(event.data);
+        // blobs[0] = new Blob(currentDataArray, { type: 'video/webm' });
+        // console.log('blobs[0].size', blobs[0].size);
+        // if (blobs[0].size >= 262144) {       //256 Кб
+        //     currentDataArray = [];
+        //     playBlobs(blobs[0]);
+        // }
+    }
 }
 
-function createPeerConnection(stream) {
-    //Create the local peer connection                                      
-    myPeerConnection = new PeerConnection(null);
-    console.log('Создан локальный пир');
+// function playBlobs(blob) {
+//     recordedVideo.src = window.URL.createObjectURL(blob);
+// }
 
-    //Create the remote peer connection                                     
-    remotePeerConnection = new PeerConnection(null);
-    console.log('Создан удаленный пир');
-
-    //Listen for ICE candidates on each                                     
-    myPeerConnection.onicecandidate = gotMyIceCandidate;
-    remotePeerConnection.onicecandidate = gotRemoteIceCandidate;
-
-    //Handle streams on each peer                                           
-    myPeerConnection.addStream(stream);
-    console.log('добавлен локальный стрим на локальный пир');
-    // remotePeerConnection.onaddstream = gotRemoteStream;
-    remotePeerConnection.ontrack = gotRemoteStream;
-
-    //Create local peer connection offer                                    
-    myPeerConnection.createOffer(description)
-        .then(gotLocalDescription)
-        .catch(() => { console.log('Создать локальный оффер не получилось') });
-};
-
-//When local ICE candidate is received...
-function gotMyIceCandidate(event) {
-    if (event.candidate) {
-        //Send the local ICE candidate to remote peer
-        remotePeerConnection.addIceCandidate(event.candidate)
-            .then(() => {
-                console.log('Получен мой кандидат и выслан удаленный');
-            })
-            .catch(() => console.log('Получен мой кандидат, но выслать не получилось'));
-        // console.log('Sent my Ice candidates to remotePeerConnection');
-    }
-};
-
-//When remote ICE candidates are received by me...
-function gotRemoteIceCandidate(event) {
-    console.log('вошли в функцию gotRemoteIceCandidate');
-    if (event.candidate) {
-        //Add the remote ICE candidate to my local peer connection
-        myPeerConnection.addIceCandidate(event.candidate)
-            .then(() => console.log('Получен удаленный кандидат и выслан мой'))
-            .catch(() => console.log('Получен удаленный кандидат, но выслать не получилось'));
-
-    }
-};
-
-//create the SDP offer!
-function gotLocalDescription(desc) {
-    myPeerConnection.setLocalDescription(desc);
-    console.log('у локального пира выполнен setLocalDescription');
-    remotePeerConnection.setRemoteDescription(desc);
-    console.log('у удаленного пира выполнен setRemoteDescription');
-    remotePeerConnection.createAnswer()
-        .then(gotRemoteDescription)
-        .catch(() => console.log('Создать ансвер не получилось'));
-    console.log('создан ансвер у удаленного пира');
-};
-
-//When remote SDP arrives...
-function gotRemoteDescription(desc) {
-    console.log('desc: ',desc);
-    remotePeerConnection.setLocalDescription(desc)
-        .then(() => {
-            console.log('у удаленного пира выполнен setLocalDescription');
-            myPeerConnection.setRemoteDescription(desc)
-                .then(() => { console.log('у локального пира выполнен setRemoteDescription'); })
-                .catch(() => console.log('не получилось сделать remoteDescription у remotePeerConnection'));
-        })
-        .catch(() => console.log('не получилось сделать setLocalDescription у remotePeerConnection'));
-};
+function playRecord() {
+//    superBuffer = new Blob(recordedBlobs, { type: 'video/webm' });
+    theirVideo.srcObject = null;
+    //    theirVideo.src = window.URL.createObjectURL(superBuffer);
+    theirVideo.src = window.URL.createObjectURL(superBuffer);
+}
 
 function stopRecording() {
-    mediaRecorder.stop();
-    console.log('Записанный superBuffer: ', superBuffer);
+    if (mediaRecorder && mediaRecorder.state == 'recording') {
+        mediaRecorder.stop(); 
+        superBuffer = new Blob(recordedBlobs, { type: 'video/webm' });
+    }
+}
+
+function downloadFile() {
+//    superBuffer = new Blob(recordedBlobs, { type: 'video/webm' });
     const url = window.URL.createObjectURL(superBuffer);
     const a = document.createElement('a');
     a.style.display = 'none';
@@ -164,16 +129,72 @@ function stopRecording() {
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
     }, 100);
-  }
+}
 
 function end() {
     console.log('end')
-    localStream.getTracks().forEach(track => track.stop());
+//    localStream.getTracks().forEach(track => track.stop());
+    theirVideo.srcObject = null;
     myPeerConnection.close();
     remotePeerConnection.close();
     myPeerConnection = null;
     remotePeerConnection = null;
 }
+
+///////////////////////////////////////////////
+function createPeerConnection(stream) {
+    myPeerConnection = new PeerConnection(null);
+    remotePeerConnection = new PeerConnection(null);
+
+    myPeerConnection.onicecandidate = gotMyIceCandidate;
+    remotePeerConnection.onicecandidate = gotRemoteIceCandidate;
+
+    myPeerConnection.addStream(stream);
+    remotePeerConnection.ontrack = gotRemoteStream;
+
+
+    myPeerConnection.createOffer(description)
+        .then(gotLocalDescription)
+        .catch(() => { console.log('Создать локальный оффер не получилось') });
+};
+
+function gotMyIceCandidate(event) {
+    if (event.candidate) {
+        remotePeerConnection.addIceCandidate(event.candidate)
+            .then(() => {
+            })
+            .catch(() => console.log('Получен мой кандидат, но выслать не получилось'));
+    }
+};
+
+function gotRemoteIceCandidate(event) {
+    if (event.candidate) {
+        myPeerConnection.addIceCandidate(event.candidate)
+            .then()
+            .catch(() => console.log('Получен удаленный кандидат, но выслать не получилось'));
+
+    }
+};
+
+function gotLocalDescription(desc) {
+    myPeerConnection.setLocalDescription(desc);
+
+    remotePeerConnection.setRemoteDescription(desc);
+    remotePeerConnection.createAnswer()
+        .then(gotRemoteDescription)
+        .catch(() => console.log('Создать ансвер не получилось'));
+};
+
+function gotRemoteDescription(desc) {
+    remotePeerConnection.setLocalDescription(desc)
+        .then(() => {
+            myPeerConnection.setRemoteDescription(desc)
+                .then(/*() => { console.log('у локального пира выполнен setRemoteDescription'); }*/)
+                .catch(() => console.log('не получилось сделать remoteDescription у remotePeerConnection'));
+        })
+        .catch(() => console.log('не получилось сделать setLocalDescription у remotePeerConnection'));
+};
+////////////////////////////////////////////

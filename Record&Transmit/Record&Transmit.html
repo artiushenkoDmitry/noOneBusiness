@@ -9,10 +9,12 @@
 </head>
 
 <body>
-    <div class="booth">
-        <video id="video" width="400" height="300" autoplay></video>
+    <div>
+        <video id="video" autoplay class="booth"></video>
         <br>
-        <video id="theirVideo" width="400" height="300" autoplay></video>
+        <video id="theirVideo" autoplay class="booth"></video>
+        <!-- <br>
+        <video id="recordedVideo" autoplay class="booth"></video> -->
     </div>
     <br>
     
@@ -20,13 +22,22 @@
     <input type="button" value="Для начала работы нажмите на кнопку" id="inputText" onclick="runPromise()"/>
     <br>
     <br>
-    <input type="button" value="Для окончания работы нажмине на кнопку" onclick="end()"/>
+    <input type="button" value="Для окончания работы нажмите на кнопку" onclick="end()"/>
     <br>
     <br>
-    <input type="button" value="Для начала записи нажмине на кнопку" onclick="startRecording()"/>
+    <input type="button" value="Для начала записи нажмите на кнопку" onclick="startRecording()"/>
     <br>
     <br>
-    <input type="button" value="Для окончания записи нажмине на кнопку" onclick="stopRecording()"/>
+    <input type="button" value="Для окончания записи нажмите на кнопку" onclick="stopRecording()"/>
+    <br>
+    <br>
+    <input type="button" value="Чтобы проиграть записанное видео нажмите на кнопку" onclick="playRecord()"/>
+    <br>
+    <br>
+    <input type="button" value="Для получения файла с записью нажмите на кнопку" onclick="downloadFile()"/>
+    <br>
+    <br>
+    <input type="button" value="Для получения статистики по получателю нажмите на кнопку" onclick="getReceiverStats()"/>
 
 <script type="text/javascript">pageReady();</script>
 </body>
