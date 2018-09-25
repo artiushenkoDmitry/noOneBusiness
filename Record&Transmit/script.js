@@ -6,10 +6,11 @@ var PeerConnection;
 var theirVideo;
 var mediaRecorder;
 var recordedBlobs;
-var superBuffer;
+var recordedBlobssuperBuffer;
 var remoteStream;
 var kostil;
-
+var blobFirst;
+var blobSecond;
 
 const description = {
     offerToReceiveAudio: 1,
@@ -71,7 +72,7 @@ function gotRemoteStream(event) {
  */
 function startRecording() {
     kostil = true;
-    recordedBlobs = [];
+    //    recordedBlobs = [];
     let options = { mimeType: 'video/webm;codecs=vp9' };
     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
         console.log(options.mimeType, ' не поддерживается');
@@ -95,37 +96,61 @@ function itsTime() {
 
 function handleDataAvailable(event) {
     if (event.data && event.data.size > 0) {
-        playRecord(event.data);
+        if (blobFirst && blobSecond) {
+            blobFirst = null;
+            blobSecond = null;
+        }
+        if (!blobFirst) { blobFirst = event.data; }
+        else if (!blobSecond){ blobSecond = event.data; }
+        recordedBlobs = event.data;
+        if (blobFirst && blobSecond) {
+            playBothBlobs(blobFirst, blobSecond);
+        }
+        // playRecord(event.data);
         //---------------------------
-        const url = window.URL.createObjectURL(event.data);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = 'test.webm';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        }, 100);
+        // const url = window.URL.createObjectURL(event.data);
+        // const a = document.createElement('a');
+        // a.style.display = 'none';
+        // a.href = url;
+        // a.download = 'test.webm';
+        // document.body.appendChild(a);
+        // a.click();
+        // setTimeout(() => {
+        //     document.body.removeChild(a);
+        //     window.URL.revokeObjectURL(url);
+        // }, 100);
         //---------------------------
+    }
+}
+
+function playBothBlobs(blobFirst, blobSecond) {
+    console.log('1');
+    recordedVideo.src = window.URL.createObjectURL(blobFirst);
+    console.log('2');
+    recordedVideo.onended = () => {
+        console.log('3');
+        blobFirst = null;
+        console.log('первое видео закончилось, второе еще не началось');
+        recordedVideo.src = window.URL.createObjectURL(blobSecond);
+        recordedVideo.onended = () => { blobSecond = null; }
     }
 }
 
 function playRecord(blob) {
     recordedVideo.src = window.URL.createObjectURL(blob);
+    console.log('mediaRecorder playRecord: ', mediaRecorder);
 }
 
 function stopRecording() {
     if (mediaRecorder && mediaRecorder.state == 'recording') {
         mediaRecorder.stop();
-        superBuffer = new Blob(recordedBlobs, { type: 'video/webm' });
+        //        superBuffer = new Blob(recordedBlobs, { type: 'video/webm' });
         kostil = false;
     }
 }
 
 function downloadFile() {
-    const url = window.URL.createObjectURL(superBuffer);
+    const url = window.URL.createObjectURL(recordedBlobs);
     const a = document.createElement('a');
     a.style.display = 'none';
     a.href = url;
