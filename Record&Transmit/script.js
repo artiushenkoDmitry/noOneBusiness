@@ -8,14 +8,12 @@ var mediaRecorder;
 var recordedBlobs;
 var superBuffer;
 var remoteStream;
-//var currentDataArray = [];
-//var localStream;
-// var SessionDescription;
+var kostil;
+
 
 const description = {
     offerToReceiveAudio: 1,
     offerToReceiveVideo: 1
-    // voiceActivityDetection: false
 };
 navigator.getMedia = navigator.getUserMedia ||
     navigator.webkitGetUserMedia ||
@@ -35,92 +33,98 @@ function getReceiverStats() {
     });
 }
 
+/**
+ * Связываение с элементами на HTML
+ */
 function pageReady() {
     theirVideo = document.getElementById('theirVideo');
     video = document.getElementById('video');
     recordedVideo = document.getElementById('recordedVideo');
-    // for (index = 0; index < 10; index++) {
-    //     blobs[index] = new Blob();
-    // }
 }
 
+/**
+ * Получаем локальный поток с камеры
+ */
 function runPromise() {
     navigator.getMedia({
         video: true,
         audio: true
     }, function (stream) {
-//        localStream = stream;
         video.srcObject = stream;
         createPeerConnection(stream);
     }, function (error) {
     })
 }
 
-//Success! Show the remote video...
+/**
+ * Функция срабатывает как только появялется поток на удаленном пире
+ * @param {*} event 
+ */
 function gotRemoteStream(event) {
     remoteStream = event.streams[0];
     console.log('связь с удаленным пиром установлена');
-    //    startRecording();
-    //    playRecord();
-    //    window.stream = event.streams[0];
     theirVideo.srcObject = remoteStream;
 };
 
+/**
+ * Функция срабатывает при нажатии на соответствующую кнопку. Используется MediaRecorder API
+ */
 function startRecording() {
+    kostil = true;
     recordedBlobs = [];
-    console.log('вошли в функцию startRecording');
     let options = { mimeType: 'video/webm;codecs=vp9' };
     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
         console.log(options.mimeType, ' не поддерживается');
     } else {
-        try {
-            mediaRecorder = new MediaRecorder(remoteStream, options);
-        } catch (error) {
-            console.error('Произошла ошибка при создании MediaRecorder:', error);
-            return;
-        }
-        console.log('Создан MediaRecorder ', mediaRecorder, ' с настройками ', options);
-
+        //        try {
+        mediaRecorder = new MediaRecorder(remoteStream, options);
+        // } catch (error) {
+        //     console.error('Произошла ошибка при создании MediaRecorder:', error);
+        //     return;
+        // }
         mediaRecorder.ondataavailable = handleDataAvailable;
-        mediaRecorder.start(100);
-        console.log('MediaRecorder started', mediaRecorder);
+        mediaRecorder.start();                     //в скобках указано с какой периодичностью будет срабатывать ondataavailable.
     }
+}
+
+function itsTime() {
+    mediaRecorder.requestData();
+    mediaRecorder.stop();
+    mediaRecorder.start();
 }
 
 function handleDataAvailable(event) {
-    console.log('вошли в метод handleDataAvailable');
     if (event.data && event.data.size > 0) {
-        recordedBlobs.push(event.data);
-        // currentDataArray.push(event.data);
-        // blobs[0] = new Blob(currentDataArray, { type: 'video/webm' });
-        // console.log('blobs[0].size', blobs[0].size);
-        // if (blobs[0].size >= 262144) {       //256 Кб
-        //     currentDataArray = [];
-        //     playBlobs(blobs[0]);
-        // }
+        playRecord(event.data);
+        //---------------------------
+        const url = window.URL.createObjectURL(event.data);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'test.webm';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }, 100);
+        //---------------------------
     }
 }
 
-// function playBlobs(blob) {
-//     recordedVideo.src = window.URL.createObjectURL(blob);
-// }
-
-function playRecord() {
-//    superBuffer = new Blob(recordedBlobs, { type: 'video/webm' });
-    theirVideo.srcObject = null;
-    //    theirVideo.src = window.URL.createObjectURL(superBuffer);
-    theirVideo.src = window.URL.createObjectURL(superBuffer);
+function playRecord(blob) {
+    recordedVideo.src = window.URL.createObjectURL(blob);
 }
 
 function stopRecording() {
     if (mediaRecorder && mediaRecorder.state == 'recording') {
-        mediaRecorder.stop(); 
+        mediaRecorder.stop();
         superBuffer = new Blob(recordedBlobs, { type: 'video/webm' });
+        kostil = false;
     }
 }
 
 function downloadFile() {
-//    superBuffer = new Blob(recordedBlobs, { type: 'video/webm' });
     const url = window.URL.createObjectURL(superBuffer);
     const a = document.createElement('a');
     a.style.display = 'none';
@@ -136,7 +140,6 @@ function downloadFile() {
 
 function end() {
     console.log('end')
-//    localStream.getTracks().forEach(track => track.stop());
     theirVideo.srcObject = null;
     myPeerConnection.close();
     remotePeerConnection.close();
@@ -144,7 +147,6 @@ function end() {
     remotePeerConnection = null;
 }
 
-///////////////////////////////////////////////
 function createPeerConnection(stream) {
     myPeerConnection = new PeerConnection(null);
     remotePeerConnection = new PeerConnection(null);
@@ -197,4 +199,10 @@ function gotRemoteDescription(desc) {
         })
         .catch(() => console.log('не получилось сделать setLocalDescription у remotePeerConnection'));
 };
-////////////////////////////////////////////
+
+window.setInterval(() => {
+    if (!kostil) {
+        return;
+    }
+    itsTime();
+}, 5000);
