@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+  </head>
+  <body>
+    <input type="button" value="Set cache value from library" onclick="start()" id = "startButton" />
+<br>
+    <input type="button" value="Get cache value from library" onclick="getLibrarianCache()" id = "getLibrarianCacheButton" />
+<br>
+    <input type="button" value="Set own cache value" onclick="setOwnCach()" id = "setOwnCacheButton" />
+<br>
+    <input type="button" value="Get own cache value" onclick="getOwnCach()" id = "getOwnCacheButton" />
+<br>
+
+<script>
+  var button = document.getElementById("startButton");
+  var getLibrarianCacheButton = document.getElementById("getLibrarianCacheButton");
+  var setOwnCacheButton = document.getElementById("setOwnCacheButton");
+  var getOwnCacheButton = document.getElementById("getOwnCacheButton");
+  
+function start(){
+  button.disabled = true;
+    google.script.run.withSuccessHandler(()=>{
+      button.disabled = false;
+    })
+    .withFailureHandler((e)=>{alert(e)})
+    .start();
+}
+
+function getLibrarianCache(){
+  getLibrarianCacheButton.disabled = true;
+    google.script.run.withSuccessHandler(()=>{
+      getLibrarianCacheButton.disabled = false;
+    })
+    .withFailureHandler((e)=>{alert(e)})
+    .getLibrarianCache();
+}
+
+function setOwnCach(){
+  setOwnCacheButton.disabled = true;
+    google.script.run.withSuccessHandler(()=>{
+      setOwnCacheButton.disabled = false;
+    })
+    .withFailureHandler((e)=>{alert(e)})
+    .setOwnCach();
+}
+
+function getOwnCach(){
+  getOwnCacheButton.disabled = true;
+    google.script.run.withSuccessHandler(()=>{
+      getOwnCacheButton.disabled = false;
+    })
+    .withFailureHandler((e)=>{alert(e)})
+    .getOwnCach();
+}
+
+</script>
+  </body>
+</html>
+
+
