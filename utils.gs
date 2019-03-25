@@ -1,3 +1,6 @@
+/**
+*
+*/
 function getSelectedRange_(){
   var result = SpreadsheetApp.getActiveSheet().getActiveRange();
   return result;
